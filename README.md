@@ -1,8 +1,4 @@
 # Kasa-Smart-Plug-Power-on-and-off-with-KLAP-LV2-Encryption
-These are short python programs to turn on Kasa plugs using KLAP LV2 encryption. 
-
-
-# Kasa Plug Control
 
 A small Python utility for turning TP-Link Kasa smart plugs on and off over the local
 network, without going through the Kasa mobile app or TP-Link's cloud.
@@ -31,6 +27,8 @@ split across both.
 | Credentials | None | TP-Link account email + password |
 | Status | Being phased out | Active |
 
+**XOR authentication** may still be used on Kasa plugs on older firmware. 
+
 **KLAP authentication is entirely local.** Your credentials are hashed and compared
 against hashes the plug stored when it was first provisioned. No cloud round-trip
 happens at control time, so plugs can be firewalled off from the internet and still
@@ -55,9 +53,6 @@ the V2 transport explicitly, which works around
 ---
 
 ## Setting up Python on macOS
-
-macOS ships with a system Python that should not be used for installing packages.
-Install your own. Either option below works.
 
 ### Option A — Homebrew (recommended)
 
@@ -108,18 +103,6 @@ sudo apt update
 sudo apt install python3 python3-pip python3-venv
 ```
 
-**Fedora / RHEL:**
-
-```bash
-sudo dnf install python3 python3-pip
-```
-
-**Arch:**
-
-```bash
-sudo pacman -S python python-pip
-```
-
 Verify:
 
 ```bash
@@ -129,26 +112,6 @@ python3 --version
 ---
 
 ## Installation
-
-### Using a virtual environment (recommended)
-
-A venv keeps this project's dependencies isolated and avoids the
-"externally-managed-environment" error that newer Debian/Ubuntu and Homebrew Pythons
-raise on global installs.
-
-```bash
-cd /path/to/Random_Project
-
-python3 -m venv .venv
-source .venv/bin/activate
-
-python3 -m pip install --upgrade pip
-python3 -m pip install python-kasa
-```
-
-Your prompt will show `(.venv)` while the environment is active. Run `deactivate` to
-exit it. You will need to re-run `source .venv/bin/activate` in each new terminal
-session.
 
 ### Without a virtual environment
 
@@ -204,28 +167,6 @@ extra step if the plugs control equipment that matters.
 
 ---
 
-## Configuration
-
-Set your credentials as environment variables rather than hardcoding them:
-
-```bash
-export KASA_USERNAME='you@example.com'
-export KASA_PASSWORD='yourpassword'
-export KASA_HOST='192.168.171.12'
-```
-
-Using single quotes prevents the shell from interpreting `$`, `!`, and backslashes in
-your password. To make these persistent, add them to `~/.zshrc` (macOS default) or
-`~/.bashrc` (most Linux shells).
-
-To confirm the shell passed the value through intact:
-
-```bash
-python3 -c "import os; print(repr(os.environ.get('KASA_PASSWORD')))"
-```
-
----
-
 ## Usage
 
 ```bash
@@ -257,113 +198,8 @@ merely accepting the command.
 
 ---
 
-## Troubleshooting
-
-### `ECONNREFUSED` on port 9999
-
-The plug is reachable but nothing is listening on 9999. Almost always means the plug
-has migrated to KLAP. Confirm with `kasa discover list` and check the ENCRYPT column.
-
-A legacy XOR client (including the Node `tplink-smarthome-api` library) cannot talk to
-a KLAP device at all — this is not fixable in the client code.
-
-### `No route to host` / intermittent failures
-
-The plug is offline or has dropped off Wi-Fi. Check with `ping`:
-
-```bash
-ping 192.168.171.12
-```
-
-Watch the first few replies. Times that decrease by roughly 1000ms each
-(`7188ms, 6182ms, 5176ms...`) mean the packets were queued while the device was
-unreachable and answered in a burst when it came back — the device was down, not slow.
-
-Persistent latency above ~50ms on a LAN, or any packet loss, indicates a Wi-Fi problem.
-Check signal strength via `kasa --host <ip> state` (the `RSSI` field). Anything worse
-than about -70 dBm is weak. Metal racks and crowded 2.4GHz channels are common causes.
-
-### `Device response did not match our challenge`
-
-KLAP authentication failed. In order of likelihood:
-
-1. **Login version 2 transport bug.** If `kasa discover list` shows `LV 2`, the CLI
-   selects the wrong transport. This script's forced `KlapTransportV2` is the
-   workaround. The plain `kasa` CLI will keep failing even with correct credentials.
-2. **Account password changed after provisioning.** The plug still holds a hash of the
-   old password. Try the password that was current when the plug was first set up.
-3. **Wrong account.** KLAP validates against the account that *provisioned* the device.
-   A plug set up on someone else's account and then shared to yours will fail, even
-   though the app works fine. Check device ownership in the Kasa app.
-4. **Email case mismatch.** The comparison is case-sensitive. Copy the address verbatim
-   from your TP-Link account page.
-5. **Firmware regression.** Some recent firmware builds fail KLAP auth even with
-   confirmed-correct credentials and after a factory reset. See
-   [python-kasa issue #1754](https://github.com/python-kasa/python-kasa/issues/1754).
-   If you're here, no client-side fix currently exists.
-
-Empty credentials (`--username "" --password ""`) failing is **not** diagnostic — they
-fail on every KLAP device regardless of the underlying cause.
-
-Note also that a successful `kasa --username "" --password "" state` against an XOR
-plug proves nothing about your credentials, because XOR does not authenticate.
-
-### `Unclosed client session` warnings
-
-Cosmetic, caused by an exception skipping the `disconnect()` call. The script's
-`try/finally` handles this. The warnings do not indicate a separate problem.
-
-### `SyntaxError: invalid syntax` on a pip command
-
-You're at the Python REPL (prompt shows `>>>`), not the shell. Type `exit()` first.
-
-### `externally-managed-environment` error
-
-Newer Debian/Ubuntu and Homebrew Pythons block global pip installs. Use a virtual
-environment as described above.
-
----
-
-## Operational notes
-
-**Firmware migration is one-way.** Once a plug moves to KLAP it cannot be reverted, and
-its legacy port 9999 access is gone permanently. There is no supported firmware
-downgrade path.
-
-**Adding a new device can migrate your whole fleet.** There are documented cases of the
-Kasa app detecting new firmware when a device is added and updating every matching
-device on the account. If you depend on XOR plugs, be deliberate about adding hardware.
-
-**Blocking WAN access protects legacy plugs.** Since KLAP authenticates locally, denying
-the plugs outbound internet access at the router or firewall prevents firmware updates
-without breaking local control. This is the only reliable way to keep an XOR plug on
-XOR.
-
-**Use DHCP reservations.** Hardcoded IPs plus dynamic leases produce connection failures
-that look like protocol problems but are just the device moving. Reserve by MAC.
-
-**Handle transient failures in any long-running integration.** Treat `ECONNREFUSED` and
-`EHOSTUNREACH` as recoverable, reconnect with exponential backoff, and never let a
-momentary Wi-Fi dropout terminate the controlling process.
-
----
-
-## Calling this from another language
-
-`python-kasa` is the best-maintained KLAP implementation; equivalents in other
-ecosystems generally lag behind or don't support KLAP at all. The Node library
-`tplink-smarthome-api` is XOR-only and has not seen a release in roughly three years.
-
-For non-Python projects, the practical approach is a small local HTTP service wrapping
-this logic — exposing something like `/plug/<ip>/on`, `/off`, and `/state` on localhost —
-and calling that. This keeps connections warm, keeps protocol handling in one place, and
-insulates the rest of your stack from future protocol changes.
-
----
-
 ## References
 
 - [python-kasa](https://github.com/python-kasa/python-kasa) — library and CLI
 - [python-kasa supported devices](https://github.com/python-kasa/python-kasa/blob/master/SUPPORTED.md)
-- [Issue #1648](https://github.com/python-kasa/python-kasa/issues/1648) — LV2 transport selection
-- [Issue #1754](https://github.com/python-kasa/python-kasa/issues/1754) — firmware auth regression
+- [Kasa Smart Plug Companion Module](https://github.com/bitfocus/companion-module-tplink-kasasmartplug)
