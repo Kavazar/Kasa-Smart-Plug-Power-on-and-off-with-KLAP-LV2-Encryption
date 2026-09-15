@@ -10,6 +10,12 @@ plug's current state, switches it, and confirms the new state before exiting.
 
 ## Why this exists
 
+I was trying to turn on and off Kasa smart plugs with the companion-module-tplink-kasasmartplug. 
+This module has not been updated for two years. It was working fine until a recent firmware update 
+that changed the encrpytion method from XOR to KLAP. I created this program so that I could turn on
+and off the KLAP LV2 encrypted plugs with a short python script. Now I can use Companion's internal:
+Run shell command to run the scripts. 
+
 Older Kasa firmware exposed a simple, unauthenticated control protocol on **TCP port
 9999**. Nearly every third-party Kasa project was built on it. TP-Link has been
 progressively disabling that port through firmware updates and replacing it with
@@ -155,12 +161,6 @@ Reading the columns:
 - **ALIAS** — blank with "Authentication failed" on KLAP devices until you supply
   credentials. XOR devices show their alias unauthenticated because they don't verify
   anything.
-
-To populate KLAP aliases, pass credentials:
-
-```bash
-kasa --username "you@example.com" --password "yourpassword" discover
-```
 
 Identifying which physical plug is which **before** switching anything is worth the
 extra step if the plugs control equipment that matters.
