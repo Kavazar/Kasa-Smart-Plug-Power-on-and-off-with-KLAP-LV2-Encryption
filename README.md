@@ -10,9 +10,9 @@ plug's current state, switches it, and confirms the new state before exiting.
 
 ## Why this exists
 
-I was trying to turn Kasa smart plugs on and off with
+I was trying to turn Kasa smart plugs on and off with the
 [companion-module-tplink-kasasmartplug](https://github.com/bitfocus/companion-module-tplink-kasasmartplug),
-which has not been updated in two years. It worked fine until a recent firmware update
+which has not been updated in two years. It worked fine until a recent Kasa firmware update
 changed the encryption method from XOR to KLAP. I wrote this program so I could control
 the KLAP LV2 encrypted plugs with a short Python script, which I can then trigger from
 Companion using its internal **Run shell command** action.
