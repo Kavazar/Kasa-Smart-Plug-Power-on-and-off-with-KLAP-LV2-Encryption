@@ -223,12 +223,6 @@ Companion ships with a built-in shell utility that can trigger local files.
 /usr/bin/python3 /Users/YourName/Scripts/my_script.py
 ```
 
-**Windows example:**
-
-```
-"C:\Users\YourName\AppData\Local\Programs\Python\Python311\python.exe" "C:\Scripts\my_script.py"
-```
-
 Always wrap paths in quotation marks if they contain spaces.
 
 ### Use the right Python interpreter
