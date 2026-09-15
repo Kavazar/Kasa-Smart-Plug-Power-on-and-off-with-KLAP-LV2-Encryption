@@ -1,4 +1,4 @@
-# This is a test to turn on Kasa plugs that are using KLAP LV2 encryption
+# This is a test to turn off Kasa plugs that are using KLAP LV2 encryption
 
 import asyncio
 from kasa import Discover
