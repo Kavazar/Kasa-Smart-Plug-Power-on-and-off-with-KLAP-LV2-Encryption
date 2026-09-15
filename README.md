@@ -10,11 +10,12 @@ plug's current state, switches it, and confirms the new state before exiting.
 
 ## Why this exists
 
-I was trying to turn on and off Kasa smart plugs with the companion-module-tplink-kasasmartplug. 
-This module has not been updated for two years. It was working fine until a recent firmware update 
-that changed the encrpytion method from XOR to KLAP. I created this program so that I could turn on
-and off the KLAP LV2 encrypted plugs with a short python script. Now I can use Companion's internal:
-Run shell command to run the scripts. 
+I was trying to turn Kasa smart plugs on and off with
+[companion-module-tplink-kasasmartplug](https://github.com/bitfocus/companion-module-tplink-kasasmartplug),
+which has not been updated in two years. It worked fine until a recent firmware update
+changed the encryption method from XOR to KLAP. I wrote this program so I could control
+the KLAP LV2 encrypted plugs with a short Python script, which I can then trigger from
+Companion using its internal **Run shell command** action.
 
 Older Kasa firmware exposed a simple, unauthenticated control protocol on **TCP port
 9999**. Nearly every third-party Kasa project was built on it. TP-Link has been
@@ -33,7 +34,8 @@ split across both.
 | Credentials | None | TP-Link account email + password |
 | Status | Being phased out | Active |
 
-**XOR authentication** may still be used on Kasa plugs on older firmware. 
+**XOR is still in use on plugs running older firmware.** It performs no authentication
+at all, which is why older tools never needed credentials.
 
 **KLAP authentication is entirely local.** Your credentials are hashed and compared
 against hashes the plug stored when it was first provisioned. No cloud round-trip
@@ -198,8 +200,77 @@ merely accepting the command.
 
 ---
 
+## Running from a Bitfocus Companion button
+
+Companion has no built-in text editor for writing Python inside a button, so the
+standard approach is to use a shell execution action that targets your local Python
+interpreter and this script.
+
+### Using the core "System: Run shell command" action
+
+Companion ships with a built-in shell utility that can trigger local files.
+
+1. Open your Companion admin UI.
+2. Click the button you want to configure.
+3. In the **KeyDown actions** block, search for and add **System: Run shell command**
+   (sometimes listed as `internal: Run shell command`).
+4. In the command text box, provide the **absolute path** to both your Python
+   executable and your script.
+
+**macOS / Linux example:**
+
+```
+/usr/bin/python3 /Users/YourName/Scripts/my_script.py
+```
+
+**Windows example:**
+
+```
+"C:\Users\YourName\AppData\Local\Programs\Python\Python311\python.exe" "C:\Scripts\my_script.py"
+```
+
+Always wrap paths in quotation marks if they contain spaces.
+
+### Use the right Python interpreter
+
+The `/usr/bin/python3` shown above is macOS's **system** Python, and `python-kasa` will
+almost certainly not be installed there. Using it produces
+`ModuleNotFoundError: No module named 'kasa'` when the button is pressed, even though
+the script runs fine from your terminal.
+
+Find the interpreter that actually has the library:
+
+```bash
+which python3
+python3 -c "import kasa; print(kasa.__file__)"
+```
+
+Typical results:
+
+| Install method | Interpreter path |
+|---|---|
+| Homebrew (Apple Silicon) | `/opt/homebrew/bin/python3` |
+| Homebrew (Intel) | `/usr/local/bin/python3` |
+| python.org | `/Library/Frameworks/Python.framework/Versions/3.14/bin/python3` |
+| Virtual environment | `/path/to/project/.venv/bin/python3` |
+
+Use that full path in the Companion action:
+
+```
+/opt/homebrew/bin/python3 /Users/YourName/Scripts/POWERON_kasa_plug_test.py
+```
+
+### One script per button
+
+Companion buttons are simplest when each one does a single thing. Keep separate
+scripts — for example `POWERON_kasa_plug.py` and `POWEROFF_kasa_plug.py` — and point
+one button at each, rather than passing arguments.
+
+---
+
 ## References
 
 - [python-kasa](https://github.com/python-kasa/python-kasa) — library and CLI
 - [python-kasa supported devices](https://github.com/python-kasa/python-kasa/blob/master/SUPPORTED.md)
+- [python-kasa issue #1648](https://github.com/python-kasa/python-kasa/issues/1648) — LV2 transport selection
 - [Kasa Smart Plug Companion Module](https://github.com/bitfocus/companion-module-tplink-kasasmartplug)
