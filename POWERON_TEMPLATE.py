@@ -21,7 +21,7 @@ async def main():
         await plug.turn_on()
 
         await plug.update()
-        print(plug.alias, "power status before:", plug.is_on)
+        print(plug.alias, "power status after:", plug.is_on)
     finally:
         await plug.disconnect()
 
