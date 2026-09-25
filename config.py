@@ -12,8 +12,8 @@
 
 
 # Kasa Smart Plugs access variables
-K_USER = "user@email.com"    # Kasa - your real TP-Link email
-K_PASS = "password"  # Kasa - your real password
+K_USER = "user@email.com"     # Kasa - your real TP-Link email
+K_PASS = "password"           # Kasa - your real password
 
 
 # Bitfocus Companion access variables
